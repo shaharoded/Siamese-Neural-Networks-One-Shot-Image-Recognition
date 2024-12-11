@@ -139,6 +139,6 @@ if __name__ == "__main__":
             main_predict()
         elif choice == 4:
             print("\nExiting the program. Goodbye!")
-            sys.exit()
         else:
             print("Invalid choice. Please select a valid option.")
+        sys.exit()
