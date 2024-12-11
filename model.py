@@ -222,7 +222,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
             epochs_no_improve = 0
 
             # Save best model
-            torch.save(model.state_dict(), os.path.join(model_dir, save_path))
+            torch.save(model.state_dict(), os.path.join(MODEL_DIR, save_path))
         else:
             epochs_no_improve += 1
 
