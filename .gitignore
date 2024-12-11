@@ -1,6 +1,7 @@
 # Ignore specific files
 Backup.zip
 lfwa.zip
+results.xlsx
 
 # Ignore an entire folder
 lfwa/

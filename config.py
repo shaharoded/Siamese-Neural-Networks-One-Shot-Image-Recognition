@@ -1,14 +1,16 @@
+import os
 import torch
 
 # Paths
 DATA_ROOT = "lfwa/Files"
 TRAIN_FILE = "lfwa/train.txt"
 TEST_FILE = "lfwa/test.txt"
+MODEL_DIR = "trained_models"
 
 # DataLoader Parameters
-BATCH_SIZE = 8      # Batch size for training and validation
+BATCH_SIZE = 4      # Batch size for training and validation
 SHUFFLE = True      # Shuffle data in DataLoader
-NUM_WORKERS = 4     # Number of worker threads for DataLoader
+NUM_WORKERS = 2     # Number of worker threads for DataLoader
 
 # Image Transformation Parameters
 IMAGE_SIZE = (105, 105)  # Matches the input size in the paper
@@ -39,4 +41,5 @@ EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Device to use ('cpu' or 'cuda')
 
 # Save Path
-SAVE_PATH = "model1_best_checkpoint.pth"        # Path to save the best model
+MODEL_NAME = "model1_best_checkpoint.pth"        # Path to save the best model
+SAVE_PATH = os.path.join(MODEL_DIR, MODEL_NAME)

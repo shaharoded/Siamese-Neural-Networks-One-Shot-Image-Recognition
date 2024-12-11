@@ -5,9 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 from dataset import get_dataloader, stratified_split
 
-MODEL_DIR = "trained_models"
-
-
 class CNNBlock(nn.Module):
     """
     A single convolutional block consisting of:
