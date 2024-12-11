@@ -234,7 +234,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
     return train_losses, val_losses
 
 
-def predict(model_path, test_dataset, batch_size, num_workers, device):
+def predict(model_path, cnn_blocks, fc_layers, test_dataset, batch_size, num_workers, device):
     """
     Predict using a trained Siamese Neural Network on a test dataset.
 
@@ -255,7 +255,7 @@ def predict(model_path, test_dataset, batch_size, num_workers, device):
     
     # Load the trained model
     print(f"[Prediction]: Loading model from {model_path}...")
-    model = SiameseNetwork().to(device)
+    model = SiameseNetwork(cnn_blocks, fc_layers).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
