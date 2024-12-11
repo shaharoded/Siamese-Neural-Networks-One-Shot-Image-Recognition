@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 from dataset import get_dataloader, stratified_split
 
+MODEL_DIR = "trained_models"
+
+
 class CNNBlock(nn.Module):
     """
     A single convolutional block consisting of:
@@ -153,6 +156,8 @@ def train(model, dataset, batch_size, shuffle, val_split,
     # Record start time
     start_time = time.time()
     
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    
     # Perform stratified split
     train_dataset, val_dataset = stratified_split(dataset, val_split)
 
@@ -217,7 +222,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
             epochs_no_improve = 0
 
             # Save best model
-            torch.save(model.state_dict(), save_path)
+            torch.save(model.state_dict(), os.path.join(model_dir, save_path))
         else:
             epochs_no_improve += 1
 
@@ -234,7 +239,7 @@ def predict(model_path, test_dataset, batch_size, num_workers, device):
     Predict using a trained Siamese Neural Network on a test dataset.
 
     Args:
-        model_path (str): Path to the saved model.
+        model_path (str): The file name fo the model, within MODEL_DIR.
         test_dataset (SiameseNetworkDataset): Test dataset object.
         batch_size (int): Batch size for DataLoader.
         num_workers (int): Number of worker threads for DataLoader.
@@ -244,6 +249,7 @@ def predict(model_path, test_dataset, batch_size, num_workers, device):
         float: Accuracy of the model on the test dataset.
     """
     # Check if model exists
+    model_path = os.path.join(MODEL_DIR, model_path)
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"[Error]: The specified model path '{model_path}' does not exist.")
     

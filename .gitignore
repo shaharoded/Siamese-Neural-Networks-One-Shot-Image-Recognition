@@ -1,0 +1,8 @@
+# Ignore specific files
+model1_best_checkpoint.pth
+Backup.zip
+
+# Ignore an entire folder
+lfwa/
+venv/
+__pycache__/
