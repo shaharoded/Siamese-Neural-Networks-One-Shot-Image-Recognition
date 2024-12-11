@@ -141,7 +141,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
         batch_size (int): Batch size for training.
         shuffle (bool): Whether to shuffle the dataset during training.
         val_split (float): Fraction of data to use for validation.
-        epochs (int): Maximum number of epochs to train.
+        epochs (tup): (Minimum number of epochs, Maximum number of epochs) to train.
         lr (float): Learning rate for the optimizer.
         l2_reg (float): L2 regularization strength.
         early_stop_patience (int): Number of epochs to wait for improvement before stopping.
@@ -172,11 +172,12 @@ def train(model, dataset, batch_size, shuffle, val_split,
     # Initialize variables for early stopping
     best_val_loss = float('inf')
     epochs_no_improve = 0
+    min_epochs, max_epochs = epochs
 
     train_losses, val_losses = [], []
     
     # Training loop
-    for epoch in range(epochs):
+    for epoch in range(max_epochs):
         model.train()
         train_loss = 0.0
 
@@ -214,7 +215,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
 
-        print(f"[Training Status]: Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {current_duration:.2f} minutes")
+        print(f"[Training Status]: Epoch {epoch+1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {current_duration:.2f} minutes")
 
         # Early stopping check
         if val_loss < best_val_loss:
@@ -223,7 +224,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
 
             # Save best model
             torch.save(model.state_dict(), os.path.join(MODEL_DIR, save_path))
-        else:
+        elif epoch >= min_epochs:
             epochs_no_improve += 1
 
         if epochs_no_improve >= early_stop_patience:

@@ -51,7 +51,7 @@ def train_model():
         batch_size=BATCH_SIZE,
         shuffle=SHUFFLE,
         val_split=VAL_SPLIT,
-        epochs=EPOCHS,
+        epochs=(MIN_EPOCHS, MAX_EPOCHS),
         lr=LEARNING_RATE,
         l2_reg=L2_REG,
         early_stop_patience=EARLY_STOP_PATIENCE,
