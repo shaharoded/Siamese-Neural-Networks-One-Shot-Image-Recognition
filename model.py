@@ -172,7 +172,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
     # Initialize variables for early stopping
     best_val_loss = float('inf')
     epochs_no_improve = 0
-    min_epochs, max_epochs = epochs
+    min_epochs, max_epochs = epochs[0], epochs[1]
 
     train_losses, val_losses = [], []
     
