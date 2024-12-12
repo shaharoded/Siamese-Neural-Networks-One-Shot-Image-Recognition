@@ -104,28 +104,26 @@ class SiameseNetwork(nn.Module):
         self.cnn = nn.Sequential(*cnn_layers)
         
         # Fully connected layers
+        # Fully connected layers
         fc_layers_list = []
-        input_features = fc_layers[0]["in_features"]
-        for fc in fc_layers:
-            fc_layers_list.append(nn.Linear(input_features, fc["out_features"]))
-            fc_layers_list.append(nn.ReLU())
-            input_features = fc["out_features"]
+        for i, fc in enumerate(fc_layers):
+            fc_layers_list.append(nn.Linear(fc["in_features"], fc["out_features"]))
+            if i < len(fc_layers) - 1:  # Add Sigmoid for all layers except the final one
+                fc_layers_list.append(nn.Sigmoid())
         self.fc = nn.Sequential(*fc_layers_list)
         
-        # Output similarity measure
-        self.out = nn.Linear(fc_layers[-1]["out_features"], 1)
 
     def __forward_once(self, x):
         """
-        Passes a single input through the CNN and fully connected layers
-        to extract its feature vector.
+        Passes a single input through the CNN and the first fully connected layer
+        to extract its 4096-dimensional feature vector.
 
         Input: Tensor of shape (batch_size, channels, height, width)
-        Output: Feature vector of shape (batch_size, feature_dim)
+        Output: Feature vector of shape (batch_size, 4096)
         """
-        x = self.cnn(x)
-        x = torch.flatten(x, 1)  # Flatten for fully connected layers
-        x = self.fc(x)
+        x = self.cnn(x)  # Pass through CNN layers
+        x = torch.flatten(x, 1)  # Flatten the tensor for fully connected layers
+        x = self.fc[:-1](x)  # Pass through all FC layers except the last one
         return x
 
     def forward(self, input1, input2):
@@ -133,19 +131,23 @@ class SiameseNetwork(nn.Module):
         Processes two inputs (input1, input2) and computes their similarity score.
 
         Steps:
-        1. Extract feature vectors for both inputs using the twin networks.
+        1. Extract 4096-dimensional feature vectors for both inputs using `__forward_once`.
         2. Compute the L1 distance between the two feature vectors.
-        3. Pass the L1 distance through a fully connected layer with a sigmoid to
-           output the similarity score.
+        3. Pass the L1 distance through the final fully connected layer to produce the similarity score.
 
         Input: Two tensors, each of shape (batch_size, channels, height, width)
         Output: Tensor of shape (batch_size, 1) representing similarity scores.
         """
+        # Extract feature vectors for both inputs
         output1 = self.__forward_once(input1)
         output2 = self.__forward_once(input2)
-        # Compute L1 distance and pass through a sigmoid
+
+        # Compute L1 distance
         l1_distance = torch.abs(output1 - output2)
-        return torch.sigmoid(self.out(l1_distance))
+
+        # Pass the L1 distance through the final layer (last FC)
+        similarity_score = self.fc[-1](l1_distance)
+        return torch.sigmoid(similarity_score)
     
 
 def train(model, dataset, batch_size, val_split, 

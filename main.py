@@ -1,10 +1,16 @@
+'''
+Fix the resize to input 105X105 to the original architecture
+Fix the backprop to apply with the additional layer
+'''
+
+
 import sys
 import torch
 import torchvision
 import matplotlib.pyplot as plt
 from dataset import SiameseNetworkDataset, get_dataloader
 from model import SiameseNetwork, train, predict
-from utils import imshow
+from utils import imshow, calculate_output_size
 from config import *
 
 def visualize_data():
@@ -30,8 +36,22 @@ def visualize_data():
 
     # Visualize the grid with labels
     imshow(torchvision.utils.make_grid(concatenated), labels=labels)
-    
 
+  
+def calculate_conv_out():
+    input_size = (21, 21)
+    conv_kernel = 4
+    conv_stride = 1
+    conv_padding = 0
+    pool_kernel = 2
+    pool_stride = 2
+    pool_padding = 0
+
+    output_size = calculate_output_size(input_size, conv_kernel, conv_stride, conv_padding, 
+                                        pool_kernel, pool_stride, pool_padding)
+    print("Output size after Conv + Pooling:", output_size)
+
+    
 def train_model():
         # Initialize the dataset
     print("[Setup]: Initializing dataset...")
@@ -198,10 +218,11 @@ if __name__ == "__main__":
     def menu():
         print("\nMenu:")
         print("1. Visualize Data")
-        print("2. Train a Model")
-        print("3. Test Existing Model")
-        print("4. View main Mistakes")
-        print("5. Exit")
+        print("2. Calculate Convolution Output")
+        print("3. Train a Model")
+        print("4. Test Existing Model")
+        print("5. View main Mistakes")
+        print("9. Exit")
 
     while True:
         menu()
@@ -214,12 +235,14 @@ if __name__ == "__main__":
         if choice == 1:
             visualize_data()
         elif choice == 2:
-            train_model()
+            calculate_conv_out()
         elif choice == 3:
-            main_predict()
+            train_model()
         elif choice == 4:
-            view_mistakes()
+            main_predict()
         elif choice == 5:
+            view_mistakes()
+        elif choice == 9:
             print("\nExiting the program. Goodbye!")
         else:
             print("Invalid choice. Please select a valid option.")

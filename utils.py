@@ -27,3 +27,32 @@ def imshow(img, labels=None):
                      bbox={'facecolor': 'white', 'alpha': 0.8, 'pad': 3})
     
     plt.show()
+    
+
+def calculate_output_size(input_size, kernel_size, stride, padding, pool_kernel, pool_stride, pool_padding):
+    """
+    Calculate the output size of a convolutional layer followed by a max-pooling layer.
+    
+    Args:
+        input_size (tuple): (Height, Width) of the input image.
+        kernel_size (int): Size of the convolutional kernel (assumes square kernel).
+        stride (int): Stride of the convolution.
+        padding (int): Padding added to all sides of the input image.
+        pool_kernel (int): Size of the max-pooling kernel.
+        pool_stride (int): Stride of the max-pooling operation.
+        pool_padding (int): Padding for the max-pooling operation.
+        
+    Returns:
+        tuple: (Height, Width) of the final output image.
+    """
+    # Convolutional layer output
+    h_in, w_in = input_size
+    h_out = (h_in + 2 * padding - kernel_size) // stride + 1
+    w_out = (w_in + 2 * padding - kernel_size) // stride + 1
+    
+    # Max-pooling layer output
+    if pool_kernel > 0 and pool_stride > 0:
+        h_out = (h_out + 2 * pool_padding - pool_kernel) // pool_stride + 1
+        w_out = (w_out + 2 * pool_padding - pool_kernel) // pool_stride + 1
+    
+    return h_out, w_out
