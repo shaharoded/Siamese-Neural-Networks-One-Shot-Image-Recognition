@@ -122,7 +122,7 @@ def main_predict():
         imshow(torchvision.utils.make_grid(concatenated), labels=similarity_scores)
 
         
-def view_mistakes(k=3):
+def view_mistakes(k=5):
     """
     Main function to handle predictions on the test dataset and display the k most mismatched predictions.
     Mismatched predictions are ranked by the absolute error between the predicted similarity score 
@@ -151,7 +151,6 @@ def view_mistakes(k=3):
     # Collect predictions and labels
     mismatches = []  # Store tuples: (abs_error, img1, img2, score, label)
     all_scores = []  # Collect all predicted scores
-    all_labels = []  # Collect all true labels
     with torch.no_grad():
         for img1, img2, labels in test_loader:
             img1, img2, labels = img1.to(DEVICE), img2.to(DEVICE), labels.to(DEVICE)
@@ -165,7 +164,6 @@ def view_mistakes(k=3):
 
             # Collect scores and labels for analysis
             all_scores.append(outputs.item())
-            all_labels.append(labels.item())
             
     # Sort mismatches by absolute error in descending order
     mismatches.sort(key=lambda x: x[0], reverse=True)
@@ -185,12 +183,12 @@ def view_mistakes(k=3):
     # Plot the distribution of predictions
     plt.figure(figsize=(10, 6))
     plt.hist(all_scores, bins=20, alpha=0.7, label="Predicted Scores", color='blue')
-    plt.hist(all_labels, bins=2, alpha=0.7, label="True Labels", color='orange')
     plt.xlabel("Score")
     plt.ylabel("Frequency")
-    plt.title("Distribution of Predicted Scores and True Labels")
+    plt.title("Distribution of Predicted Scores")
     plt.legend()
     plt.grid(True)
+    plt.xlim(0, 1)  # Explicitly set the x-axis range to [0, 1]
     plt.show()
 
     print("[Analysis]: Prediction confidence distribution plotted.")
@@ -220,7 +218,7 @@ if __name__ == "__main__":
         elif choice == 3:
             main_predict()
         elif choice == 4:
-            view_mistakes(k=10)
+            view_mistakes()
         elif choice == 5:
             print("\nExiting the program. Goodbye!")
         else:
