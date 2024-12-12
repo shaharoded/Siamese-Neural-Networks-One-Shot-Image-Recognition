@@ -9,7 +9,7 @@ MODEL_DIR = "trained_models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 # DataLoader Parameters
-BATCH_SIZE = 4      # Batch size for training and validation
+BATCH_SIZE = 8      # Batch size for training and validation
 NUM_WORKERS = 2     # Number of worker threads for DataLoader
 
 # Image Transformation Parameters

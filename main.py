@@ -14,18 +14,20 @@ def visualize_data():
     dataset = SiameseNetworkDataset(root_dir=DATA_ROOT, file_list=TRAIN_FILE, transform=None, image_size=IMAGE_SIZE)
 
     # Create a DataLoader from the dataset
-    dataloader = get_dataloader(dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
+    dataloader = get_dataloader(dataset, batch_size=8, num_workers=NUM_WORKERS)
 
     # Get a batch of data
     data_iter = iter(dataloader)
     example_batch = next(data_iter)
+    img1, img2, labels = example_batch
 
-    # Concatenate images for visualization
-    concatenated = torch.cat((example_batch[0], example_batch[1]), 0)
-    
+    # Stack each pair of images vertically and then concatenate the pairs horizontally
+    pairs = [torch.cat((img1[i], img2[i]), dim=1) for i in range(img1.size(0))]
+    concatenated = torch.cat(pairs, dim=2)
+
     # Generate labels for the batch
-    labels = ["Twin" if label.item() == 1 else "Not Twin" for label in example_batch[2]]
-    
+    labels = ["Twin" if label.item() == 1 else "Not Twin" for label in labels]
+
     # Visualize the grid with labels
     imshow(torchvision.utils.make_grid(concatenated), labels=labels)
     
@@ -111,11 +113,16 @@ def main_predict():
     with torch.no_grad():
         outputs = model(img1.to(DEVICE), img2.to(DEVICE)).squeeze()
         similarity_scores = [f"Sim: {score:.2f}" for score in outputs.cpu().tolist()]
-        concatenated = torch.cat((img1, img2), 0)
+
+        # Stack each pair of images vertically and then concatenate the pairs horizontally
+        pairs = [torch.cat((img1[i], img2[i]), dim=1) for i in range(img1.size(0))]
+        concatenated = torch.cat(pairs, dim=2)
+
+        # Display the grid of stacked pairs with labels
         imshow(torchvision.utils.make_grid(concatenated), labels=similarity_scores)
 
         
-def view_mistakes(k=10):
+def view_mistakes(k=3):
     """
     Main function to handle predictions on the test dataset and display the k most mismatched predictions.
     Mismatched predictions are ranked by the absolute error between the predicted similarity score 
@@ -143,6 +150,8 @@ def view_mistakes(k=10):
 
     # Collect predictions and labels
     mismatches = []  # Store tuples: (abs_error, img1, img2, score, label)
+    all_scores = []  # Collect all predicted scores
+    all_labels = []  # Collect all true labels
     with torch.no_grad():
         for img1, img2, labels in test_loader:
             img1, img2, labels = img1.to(DEVICE), img2.to(DEVICE), labels.to(DEVICE)
@@ -154,6 +163,10 @@ def view_mistakes(k=10):
             # Store the mismatch details
             mismatches.append((abs_error, img1.cpu(), img2.cpu(), outputs.item(), labels.item()))
 
+            # Collect scores and labels for analysis
+            all_scores.append(outputs.item())
+            all_labels.append(labels.item())
+            
     # Sort mismatches by absolute error in descending order
     mismatches.sort(key=lambda x: x[0], reverse=True)
 
@@ -169,6 +182,18 @@ def view_mistakes(k=10):
         concatenated = torch.cat((img1, img2), 0)
         imshow(torchvision.utils.make_grid(concatenated), labels=[f"Pred: {score:.2f}", f"Label: {label:.0f}"])
     
+    # Plot the distribution of predictions
+    plt.figure(figsize=(10, 6))
+    plt.hist(all_scores, bins=20, alpha=0.7, label="Predicted Scores", color='blue')
+    plt.hist(all_labels, bins=2, alpha=0.7, label="True Labels", color='orange')
+    plt.xlabel("Score")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Predicted Scores and True Labels")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    print("[Analysis]: Prediction confidence distribution plotted.")
 
 if __name__ == "__main__":
     
