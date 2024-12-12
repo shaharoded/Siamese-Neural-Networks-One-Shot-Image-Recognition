@@ -59,9 +59,9 @@ class SiameseNetworkDataset(Dataset):
                 else:
                     print(f"[Dataloader Status]: Skipping malformed line {i+1}: {line.strip()}")
 
-        print(f"[Dataloader Status]: Total number of pairs (rows in file): {total_rows}")
-        print(f"[Dataloader Status]: Total positives detected: {positive_count}")
-        print(f"[Dataloader Status]: Total negatives detected: {negative_count}")
+        print(f"[Dataloader Info]: Total number of pairs (rows in file): {total_rows}")
+        print(f"[Dataloader Info]: Total positives detected: {positive_count}")
+        print(f"[Dataloader Info]: Total negatives detected: {negative_count}")
 
         return data
 
