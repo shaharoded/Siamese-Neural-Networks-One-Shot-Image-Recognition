@@ -1,9 +1,28 @@
 import os
 import time
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from dataset import get_dataloader, stratified_split
+from dataset import get_dataloader, stratified_split, count_labels
+
+
+SEED = 42
+
+def set_seed(seed):
+    '''
+    Fix all randomized actions
+    '''
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+set_seed(SEED)
+
 
 class CNNBlock(nn.Module):
     """
@@ -153,10 +172,13 @@ def train(model, dataset, batch_size, shuffle, val_split,
     # Record start time
     start_time = time.time()
     
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    
     # Perform stratified split
     train_dataset, val_dataset = stratified_split(dataset, val_split)
+    train_positives, train_negatives = count_labels(train_dataset)
+    val_positives, val_negatives = count_labels(val_dataset)
+
+    print(f"[Data Distribution]: Train - Positives: {train_positives}, Negatives: {train_negatives}")
+    print(f"[Data Distribution]: Validation - Positives: {val_positives}, Negatives: {val_negatives}")
 
     # Create DataLoaders
     train_loader = get_dataloader(train_dataset, batch_size, shuffle, num_workers)
@@ -165,6 +187,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
     # Define loss function and optimizer
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_reg)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
     # Initialize variables for early stopping
     best_val_loss = float('inf')
@@ -208,11 +231,12 @@ def train(model, dataset, batch_size, shuffle, val_split,
 
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
+        scheduler.step(val_loss) # Adjust learning rate
         
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
 
-        print(f"[Training Status]: Epoch {epoch+1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {current_duration:.2f} minutes")
+        print(f"[Training Status]: Epoch {epoch+1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {current_duration:.2f} minutes, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
         # Early stopping check
         if val_loss < best_val_loss:
@@ -220,7 +244,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
             epochs_no_improve = 0
 
             # Save best model
-            torch.save(model.state_dict(), os.path.join(MODEL_DIR, save_path))
+            torch.save(model.state_dict(), save_path)
         elif epoch >= min_epochs:
             epochs_no_improve += 1
 
@@ -247,7 +271,6 @@ def predict(model_path, cnn_blocks, fc_layers, test_dataset, batch_size, num_wor
         float: Accuracy of the model on the test dataset.
     """
     # Check if model exists
-    model_path = os.path.join(MODEL_DIR, model_path)
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"[Error]: The specified model path '{model_path}' does not exist.")
     

@@ -128,3 +128,12 @@ def stratified_split(dataset, val_split):
     val_dataset = Subset(dataset, val_indices)
 
     return train_dataset, val_dataset
+
+
+def count_labels(dataset):
+    '''
+    Function for QA on the split operation
+    '''
+    positives = sum(1 for _, _, label in dataset if label.item() == 1)
+    negatives = len(dataset) - positives
+    return positives, negatives

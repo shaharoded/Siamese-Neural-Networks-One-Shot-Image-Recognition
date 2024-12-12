@@ -6,6 +6,7 @@ DATA_ROOT = "lfwa/Files"
 TRAIN_FILE = "lfwa/train.txt"
 TEST_FILE = "lfwa/test.txt"
 MODEL_DIR = "trained_models"
+os.makedirs(MODEL_DIR, exist_ok=True)
 
 # DataLoader Parameters
 BATCH_SIZE = 4      # Batch size for training and validation
@@ -34,7 +35,7 @@ VAL_SPLIT = 0.2                   # Fraction of data for validation (out of trai
 MIN_EPOCHS = 50                   # Min number of training epochs
 MAX_EPOCHS = 500                      # Max number of training epochs
 LEARNING_RATE = 1e-4              # Learning rate for the optimizer
-L2_REG = 1e-5                     # L2 regularization strength
+L2_REG = 1e-4                     # L2 regularization strength
 EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
 
 # Device
