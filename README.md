@@ -44,6 +44,7 @@ Ensure you have Python installed and follow these steps to set up the environmen
 ```bash
 python -m venv venv
 venv\Scripts\activate  # On Windows
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
