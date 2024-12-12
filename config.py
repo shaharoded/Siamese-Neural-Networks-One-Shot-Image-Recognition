@@ -10,7 +10,6 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 # DataLoader Parameters
 BATCH_SIZE = 4      # Batch size for training and validation
-SHUFFLE = True      # Shuffle data in DataLoader
 NUM_WORKERS = 2     # Number of worker threads for DataLoader
 
 # Image Transformation Parameters
@@ -42,5 +41,5 @@ EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Device to use ('cpu' or 'cuda')
 
 # Save Path
-MODEL_NAME = "model1_best_checkpoint.pth"        # Path to save the best model
+MODEL_NAME = "modelTest_best_checkpoint.pth"        # Path to save the best model
 SAVE_PATH = os.path.join(MODEL_DIR, MODEL_NAME)

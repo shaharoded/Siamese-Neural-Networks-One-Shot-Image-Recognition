@@ -18,16 +18,22 @@ class SiameseNetworkDataset(Dataset):
         transforms.Resize(image_size),
         transforms.ToTensor()
         ])        
-        self.data = self._load_data(file_list)
+        self.data = self.__load_data(file_list)
 
-    def _load_data(self, file_list):
+
+    def __load_data(self, file_list):
         """
         Load data from the file_list (train.txt/test.txt).
         Detects whether pairs are same-folder or different-folder.
         """
         data = []
+        total_rows = 0
+        positive_count = 0
+        negative_count = 0
+
         with open(file_list, "r") as f:
             for i, line in enumerate(f.readlines()[1:]):  # Skip the header
+                total_rows += 1
                 parts = line.strip().split("\t")
 
                 # Same-folder pairs (e.g., Abdullah_Gul 13 14)
@@ -36,6 +42,7 @@ class SiameseNetworkDataset(Dataset):
                     try:
                         img1, img2 = int(img1), int(img2)
                         data.append((folder, img1, img2, 1))  # Same person (label = 1)
+                        positive_count += 1
                     except ValueError:
                         print(f"[Dataloader Status]: Skipping malformed line {i+1}: {line.strip()}")
 
@@ -45,12 +52,19 @@ class SiameseNetworkDataset(Dataset):
                     try:
                         img1, img2 = int(img1), int(img2)
                         data.append(((person1, person2), img1, img2, 0))  # Different people (label = 0)
+                        negative_count += 1
                     except ValueError:
                         print(f"[Dataloader Status]: Skipping malformed line {i+1}: {line.strip()}")
 
                 else:
                     print(f"[Dataloader Status]: Skipping malformed line {i+1}: {line.strip()}")
+
+        print(f"[Dataloader Status]: Total number of pairs (rows in file): {total_rows}")
+        print(f"[Dataloader Status]: Total positives detected: {positive_count}")
+        print(f"[Dataloader Status]: Total negatives detected: {negative_count}")
+
         return data
+
 
     def __getitem__(self, index):
         entry = self.data[index]
@@ -84,11 +98,12 @@ class SiameseNetworkDataset(Dataset):
         return len(self.data)
 
 
-def get_dataloader(dataset, batch_size, shuffle, num_workers):
+def get_dataloader(dataset, batch_size, num_workers):
     """
     Create a DataLoader from an existing dataset.
+    Shuffles the dataset, as it's sorted by label.
     """
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     return dataloader
 
 

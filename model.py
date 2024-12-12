@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import Subset
 from dataset import get_dataloader, stratified_split, count_labels
 
 
@@ -114,7 +115,7 @@ class SiameseNetwork(nn.Module):
         # Output similarity measure
         self.out = nn.Linear(fc_layers[-1]["out_features"], 1)
 
-    def forward_once(self, x):
+    def __forward_once(self, x):
         """
         Passes a single input through the CNN and fully connected layers
         to extract its feature vector.
@@ -140,15 +141,15 @@ class SiameseNetwork(nn.Module):
         Input: Two tensors, each of shape (batch_size, channels, height, width)
         Output: Tensor of shape (batch_size, 1) representing similarity scores.
         """
-        output1 = self.forward_once(input1)
-        output2 = self.forward_once(input2)
+        output1 = self.__forward_once(input1)
+        output2 = self.__forward_once(input2)
         # Compute L1 distance and pass through a sigmoid
         l1_distance = torch.abs(output1 - output2)
         return torch.sigmoid(self.out(l1_distance))
     
 
-def train(model, dataset, batch_size, shuffle, val_split, 
-          epochs, lr, l2_reg, early_stop_patience, save_path, num_workers, device):
+def train(model, dataset, batch_size, val_split, 
+          epochs, lr, l2_reg, early_stop_patience, save_path, num_workers, device, qa_mode = False):
     """
     Train the Siamese Neural Network.
         Args:
@@ -164,6 +165,7 @@ def train(model, dataset, batch_size, shuffle, val_split,
         save_path (str): Path to save the best model.
         num_workers (int): Number of worker threads for data loading.
         device (str): Device to run the training on (e.g., 'cpu', 'cuda').
+        qa_mode (bool): If true, will train on a small subset of the data, to ensure process correctness.
 
     Returns:
         2 list objects - train and validation losses.
@@ -174,15 +176,20 @@ def train(model, dataset, batch_size, shuffle, val_split,
     
     # Perform stratified split
     train_dataset, val_dataset = stratified_split(dataset, val_split)
+    
+    # If qa_mode is enabled, take small subsets of train and validation datasets
+    if qa_mode:
+        train_dataset = Subset(train_dataset, list(range(min(len(train_dataset), 50))))  # Use 20 samples max
+        val_dataset = Subset(val_dataset, list(range(min(len(val_dataset), 20))))  # Use 10 samples max
     train_positives, train_negatives = count_labels(train_dataset)
     val_positives, val_negatives = count_labels(val_dataset)
-
-    print(f"[Data Distribution]: Train - Positives: {train_positives}, Negatives: {train_negatives}")
+    
+    print(f"[Data Distribution]: Subset Train - Positives: {train_positives}, Negatives: {train_negatives}")
     print(f"[Data Distribution]: Validation - Positives: {val_positives}, Negatives: {val_negatives}")
 
     # Create DataLoaders
-    train_loader = get_dataloader(train_dataset, batch_size, shuffle, num_workers)
-    val_loader = get_dataloader(val_dataset, batch_size, False, num_workers)
+    train_loader = get_dataloader(train_dataset, batch_size, num_workers)
+    val_loader = get_dataloader(val_dataset, batch_size, num_workers)
 
     # Define loss function and optimizer
     criterion = nn.BCELoss()
@@ -277,11 +284,11 @@ def predict(model_path, cnn_blocks, fc_layers, test_dataset, batch_size, num_wor
     # Load the trained model
     print(f"[Prediction]: Loading model from {model_path}...")
     model = SiameseNetwork(cnn_blocks, fc_layers).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
     # Create DataLoader for test dataset
-    test_loader = get_dataloader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    test_loader = get_dataloader(test_dataset, batch_size=batch_size, num_workers=num_workers)
 
     correct = 0
     total = 0
@@ -293,12 +300,22 @@ def predict(model_path, cnn_blocks, fc_layers, test_dataset, batch_size, num_wor
             img1, img2, labels = batch
             img1, img2, labels = img1.to(device), img2.to(device), labels.to(device)
 
+            # Model output
             outputs = model(img1, img2).squeeze()
+
+            # Convert outputs to binary predictions
             predictions = (outputs > 0.5).float()
 
+            # Ensure labels and predictions have the same shape
+            labels = labels.squeeze()
+
+            # Update the correct count
             correct += (predictions == labels).sum().item()
+
+            # Update the total count
             total += labels.size(0)
 
+    # Compute accuracy
     accuracy = correct / total
     print(f"[Prediction]: Accuracy: {accuracy:.4f}")
     return accuracy

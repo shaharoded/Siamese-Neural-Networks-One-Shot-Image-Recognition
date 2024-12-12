@@ -14,7 +14,7 @@ def visualize_data():
     dataset = SiameseNetworkDataset(root_dir=DATA_ROOT, file_list=TRAIN_FILE, transform=None, image_size=IMAGE_SIZE)
 
     # Create a DataLoader from the dataset
-    dataloader = get_dataloader(dataset, batch_size=BATCH_SIZE, shuffle=SHUFFLE, num_workers=NUM_WORKERS)
+    dataloader = get_dataloader(dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     # Get a batch of data
     data_iter = iter(dataloader)
@@ -49,7 +49,6 @@ def train_model():
         model=model,
         dataset=dataset,
         batch_size=BATCH_SIZE,
-        shuffle=SHUFFLE,
         val_split=VAL_SPLIT,
         epochs=(MIN_EPOCHS, MAX_EPOCHS),
         lr=LEARNING_RATE,
@@ -57,7 +56,8 @@ def train_model():
         early_stop_patience=EARLY_STOP_PATIENCE,
         save_path=SAVE_PATH,
         num_workers=NUM_WORKERS,
-        device=DEVICE
+        device=DEVICE,
+        qa_mode=True
     )
 
     print("[Training]: Training complete. Model saved.")
@@ -99,13 +99,13 @@ def main_predict():
     )
 
     # Visualize a few samples from the test set
-    test_loader = get_dataloader(test_dataset, batch_size=5, shuffle=True, num_workers=NUM_WORKERS)
+    test_loader = get_dataloader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
     data_iter = iter(test_loader)
     img1, img2, label = next(data_iter)
 
     # Load the model for prediction
     model = SiameseNetwork(CNN_BLOCKS, FC_LAYERS).to(DEVICE)
-    model.load_state_dict(torch.load(SAVE_PATH, map_location=DEVICE))
+    model.load_state_dict(torch.load(SAVE_PATH, map_location=DEVICE, weights_only=True))
     model.eval()
 
     with torch.no_grad():
@@ -133,12 +133,12 @@ def view_mistakes(k=10):
     )
 
     # Load the test DataLoader
-    test_loader = get_dataloader(test_dataset, batch_size=1, shuffle=False, num_workers=NUM_WORKERS)
+    test_loader = get_dataloader(test_dataset, batch_size=1, num_workers=NUM_WORKERS)
 
     # Load the trained model
     print("[Prediction]: Loading model...")
     model = SiameseNetwork(CNN_BLOCKS, FC_LAYERS).to(DEVICE)
-    model.load_state_dict(torch.load(SAVE_PATH, map_location=DEVICE))
+    model.load_state_dict(torch.load(SAVE_PATH, map_location=DEVICE, weights_only=True))
     model.eval()
 
     # Collect predictions and labels
