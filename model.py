@@ -244,6 +244,9 @@ def train(model, dataset, batch_size, val_split,
     for epoch in range(max_epochs):
         model.train()
         train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        train_loss = 0.0
 
         for batch in train_loader:
             img1, img2, labels = batch
@@ -257,13 +260,18 @@ def train(model, dataset, batch_size, val_split,
             optimizer.step()
 
             train_loss += loss.item()
+            train_correct += (outputs.round() == labels).sum().item()
+            train_total += labels.size(0)
 
         train_loss /= len(train_loader)
+        train_accuracy = train_correct / train_total
         train_losses.append(train_loss)
 
         # Validation loop
         model.eval()
         val_loss = 0.0
+        val_correct = 0
+        val_total = 0
         with torch.no_grad():
             for batch in val_loader:
                 img1, img2, labels = batch
@@ -272,15 +280,18 @@ def train(model, dataset, batch_size, val_split,
                 outputs, labels = model(img1, img2).squeeze(), labels.squeeze() # Remove extra dimension
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
+                val_correct += (outputs.round() == labels).sum().item()
+                val_total += labels.size(0)
 
         val_loss /= len(val_loader)
+        val_accuracy = val_correct / val_total
         val_losses.append(val_loss)
         scheduler.step(val_loss) # Adjust learning rate
         
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
 
-        print(f"[Training Status]: Epoch {epoch+1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {current_duration:.2f} minutes, LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.2f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.2f}), Time: {current_duration:.2f} min, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
         # Early stopping check
         if val_loss < best_val_loss:
