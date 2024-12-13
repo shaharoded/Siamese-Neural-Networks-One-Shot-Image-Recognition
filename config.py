@@ -22,10 +22,6 @@ IMAGE_SIZE = (105, 105)  # Matches the input size of the dataset
 # Model Parameters:
 DROPOUT = 0.0
 BATCHNORM = False
-# CNN Block Configurations
-# Model Parameters:
-DROPOUT = 0.0
-BATCHNORM = False
 
 # CNN Block Configurations
 CNN_BLOCKS = [    
