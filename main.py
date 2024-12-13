@@ -10,7 +10,7 @@ import torchvision
 import matplotlib.pyplot as plt
 from dataset import SiameseNetworkDataset, get_dataloader
 from model import SiameseNetwork, train, predict
-from utils import imshow, calculate_output_size
+from utils import imshow, calculate_cnn_output_size
 from config import *
 
 def visualize_data():
@@ -39,17 +39,8 @@ def visualize_data():
 
   
 def calculate_conv_out():
-    input_size = (21, 21)
-    conv_kernel = 4
-    conv_stride = 1
-    conv_padding = 0
-    pool_kernel = 2
-    pool_stride = 2
-    pool_padding = 0
-
-    output_size = calculate_output_size(input_size, conv_kernel, conv_stride, conv_padding, 
-                                        pool_kernel, pool_stride, pool_padding)
-    print("Output size after Conv + Pooling:", output_size)
+    h, w, c = calculate_cnn_output_size(CNN_BLOCKS, IMAGE_SIZE)
+    print(f"Output size after Conv + Pooling: {h}X{w}X{c}")
 
     
 def train_model():

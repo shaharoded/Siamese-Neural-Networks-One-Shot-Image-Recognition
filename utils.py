@@ -56,3 +56,40 @@ def calculate_output_size(input_size, kernel_size, stride, padding, pool_kernel,
         w_out = (w_out + 2 * pool_padding - pool_kernel) // pool_stride + 1
     
     return h_out, w_out
+
+
+def calculate_cnn_output_size(cnn_blocks, input_size):
+    """
+    Calculate the output size of the CNN blocks to determine the input size for the FC layers.
+    
+    Args:
+        cnn_blocks (list): List of dictionaries defining CNN block configurations.
+        input_size (tuple): (Height, Width) of the input image.
+
+    Returns:
+        tuple: (Height, Width, Channels) of the final output to be used for the FC layer.
+    """
+    h, w = input_size  # Initial input size
+    channels = 3  # Default input channels for an RGB image, adjust if different (e.g., grayscale = 1)
+
+    for block in cnn_blocks:
+        kernel_size = block.get("kernel_size", 1)
+        stride = block.get("stride", 1)
+        padding = block.get("padding", 0)
+        pool_kernel = 2 if block.get("use_pooling", False) else 0
+        pool_stride = 2 if block.get("use_pooling", False) else 0
+        pool_padding = 0
+
+        # Calculate convolution output size
+        h = (h + 2 * padding - kernel_size) // stride + 1
+        w = (w + 2 * padding - kernel_size) // stride + 1
+
+        # Calculate max-pooling output size (if pooling is used)
+        if pool_kernel > 0 and pool_stride > 0:
+            h = (h + 2 * pool_padding - pool_kernel) // pool_stride + 1
+            w = (w + 2 * pool_padding - pool_kernel) // pool_stride + 1
+
+        # Update the number of channels after this layer
+        channels = block.get("out_channels", channels)
+
+    return h, w, channels
