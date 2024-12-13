@@ -39,6 +39,7 @@ FC_LAYERS = [
 
 # Training Parameters
 VAL_SPLIT = 0.2                   # Fraction of data for validation (out of train)
+AUGMENT_RATIO = 3.0               # Augment the data X3
 MIN_EPOCHS = 20                   # Min number of training epochs
 MAX_EPOCHS = 200                      # Max number of training epochs
 LEARNING_RATE = 1e-4              # Learning rate for the optimizer

@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Subset
-from dataset import get_dataloader, stratified_split, count_labels
+from dataset import get_dataloader, stratified_split, augment_dataset, count_labels
 
 
 SEED = 42
@@ -185,8 +185,8 @@ class SiameseNetwork(nn.Module):
         return self.fc[-1](l1_distance)
     
 
-def train(model, dataset, batch_size, val_split, 
-          epochs, lr, l2_reg, early_stop_patience, save_path, num_workers, device, qa_mode = False):
+def train(model, dataset, batch_size, val_split, augment_ratio,
+          epochs, lr, l2_reg, early_stop_patience, save_path, num_workers, device):
     """
     Train the Siamese Neural Network.
         Args:
@@ -211,13 +211,15 @@ def train(model, dataset, batch_size, val_split,
     # Record start time
     start_time = time.time()
     
+    # Apply augmentation to the dataset before splitting
+    if augment_ratio > 0:
+        print(f"[Training]: Applying augmentation with ratio {augment_ratio} to the dataset.")
+        augmented_data = augment_dataset(dataset, augment_ratio)
+        dataset.data = augmented_data
+    
     # Perform stratified split
     train_dataset, val_dataset = stratified_split(dataset, val_split)
-    
-    # If qa_mode is enabled, take small subsets of train and validation datasets
-    if qa_mode:
-        train_dataset = Subset(train_dataset, list(range(min(len(train_dataset), 50))))  # Use 20 samples max
-        val_dataset = Subset(val_dataset, list(range(min(len(val_dataset), 20))))  # Use 10 samples max
+        
     train_positives, train_negatives = count_labels(train_dataset)
     val_positives, val_negatives = count_labels(val_dataset)
     

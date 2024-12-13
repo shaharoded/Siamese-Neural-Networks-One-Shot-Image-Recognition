@@ -63,14 +63,14 @@ def train_model():
         dataset=dataset,
         batch_size=BATCH_SIZE,
         val_split=VAL_SPLIT,
+        augment_ratio=AUGMENT_RATIO,
         epochs=(MIN_EPOCHS, MAX_EPOCHS),
         lr=LEARNING_RATE,
         l2_reg=L2_REG,
         early_stop_patience=EARLY_STOP_PATIENCE,
         save_path=SAVE_PATH,
         num_workers=NUM_WORKERS,
-        device=DEVICE,
-        qa_mode=True
+        device=DEVICE
     )
 
     print("[Training]: Training complete. Model saved.")

@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import random
+from torchvision.transforms import functional as F
 
 
 def imshow(img, labels=None):
@@ -27,6 +29,21 @@ def imshow(img, labels=None):
                      bbox={'facecolor': 'white', 'alpha': 0.8, 'pad': 3})
     
     plt.show()
+    
+
+def apply_augmentation(image):
+    """
+    Apply random augmentation to an image.
+    """
+    augmentation_choices = [
+        lambda x: F.rotate(x, angle=random.uniform(-15, 15)),  # Random rotation
+        lambda x: F.gaussian_blur(x, kernel_size=3),           # Gaussian blur
+        lambda x: F.adjust_brightness(x, brightness_factor=random.uniform(0.8, 1.2)),  # Brightness
+        lambda x: F.adjust_contrast(x, contrast_factor=random.uniform(0.8, 1.2)),      # Contrast
+        lambda x: x  # No augmentation
+    ]
+    augmentation = random.choice(augmentation_choices)
+    return augmentation(image)
     
 
 def calculate_output_size(input_size, kernel_size, stride, padding, pool_kernel, pool_stride, pool_padding):
@@ -70,7 +87,7 @@ def calculate_cnn_output_size(cnn_blocks, input_size):
         tuple: (Height, Width, Channels) of the final output to be used for the FC layer.
     """
     h, w = input_size  # Initial input size
-    channels = 3  # Default input channels for an RGB image, adjust if different (e.g., grayscale = 1)
+    channels = 1  # 3 channels for RGB image, 1 channel for GrayScale
 
     for block in cnn_blocks:
         kernel_size = block.get("kernel_size", 1)

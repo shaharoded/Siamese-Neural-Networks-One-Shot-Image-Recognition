@@ -4,10 +4,10 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset, Subset, DataLoader
 import torchvision.transforms as transforms
-
+from utils import apply_augmentation
 
 class SiameseNetworkDataset(Dataset):
-    def __init__(self, root_dir, file_list, transform=None, image_size=(105,105)):
+    def __init__(self, root_dir, file_list, transform=None, image_size=(105,105), increase_ratio=0.0):
         """
         Dataset for Siamese Network.
         Handles same-folder (twins) and different-folder (not twins) pairs.
@@ -19,6 +19,10 @@ class SiameseNetworkDataset(Dataset):
         transforms.ToTensor()
         ])        
         self.data = self.__load_data(file_list)
+        
+        # If increase_ratio > 0, augment the dataset
+        if increase_ratio > 0:
+            self.__augment_dataset(increase_ratio)
 
 
     def __load_data(self, file_list):
@@ -64,8 +68,8 @@ class SiameseNetworkDataset(Dataset):
         print(f"[Dataloader Info]: Total negatives detected: {negative_count}")
 
         return data
-
-
+    
+    
     def __getitem__(self, index):
         entry = self.data[index]
 
@@ -82,8 +86,8 @@ class SiameseNetworkDataset(Dataset):
             img2_path = os.path.join(self.root_dir, person2, f"{person2}_{img2_id:04d}.jpg")
 
         # Open images
-        img1 = Image.open(img1_path).convert("RGB")
-        img2 = Image.open(img2_path).convert("RGB")
+        img1 = Image.open(img1_path).convert("L")
+        img2 = Image.open(img2_path).convert("L")
 
         # Apply transformations
         if self.transform:
@@ -143,6 +147,31 @@ def stratified_split(dataset, val_split):
     val_dataset = Subset(dataset, val_indices)
 
     return train_dataset, val_dataset
+
+
+def augment_dataset(dataset, augment_ratio):
+    """
+    Augments the dataset by creating additional metadata for augmented pairs.
+    The augmented images will be generated dynamically in __getitem__.
+
+    Args:
+        dataset (SiameseNetworkDataset): The dataset to augment.
+        augment_ratio (float): Ratio of augmented pairs to add for each original pair.
+
+    Returns:
+        list: Augmented metadata containing both original and augmented pairs.
+    """
+    print(f"[Augmentation]: Augmenting dataset with ratio {augment_ratio}...")
+
+    original_data = dataset.data.copy()  # Start with the original data
+    augmented_data = original_data.copy()
+
+    for folder_or_persons, img1_id, img2_id, label in original_data:
+        for _ in range(int(augment_ratio-1)):
+            augmented_data.append((folder_or_persons, img1_id, img2_id, label))
+
+    print(f"[Augmentation]: Dataset augmented. Original size: {len(original_data)}, New size: {len(augmented_data)}")
+    return augmented_data
 
 
 def count_labels(dataset):
