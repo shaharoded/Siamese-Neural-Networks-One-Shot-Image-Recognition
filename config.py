@@ -8,6 +8,10 @@ TEST_FILE = "lfwa/test.txt"
 MODEL_DIR = "trained_models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
+# Save Path
+MODEL_NAME = "model1_best_checkpoint.pth"        # Path to save the best model
+SAVE_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
+
 # DataLoader Parameters
 BATCH_SIZE = 16      # Batch size for training and validation
 NUM_WORKERS = 2     # Number of worker threads for DataLoader
@@ -47,7 +51,3 @@ EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
 
 # Device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Device to use ('cpu' or 'cuda')
-
-# Save Path
-MODEL_NAME = "modelTest_best_checkpoint.pth"        # Path to save the best model
-SAVE_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
