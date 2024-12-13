@@ -40,7 +40,7 @@ def visualize_data():
   
 def calculate_conv_out():
     h, w, c = calculate_cnn_output_size(CNN_BLOCKS, IMAGE_SIZE)
-    print(f"Output size after Conv + Pooling: {h}X{w}X{c}")
+    print(f"Output size after Conv + Pooling: {h}X{w}X{c}={h*w*c}")
 
     
 def train_model():
@@ -106,15 +106,16 @@ def main_predict():
         cnn_blocks=CNN_BLOCKS,
         fc_layers=FC_LAYERS,
         test_dataset=test_dataset,
-        batch_size=BATCH_SIZE,
+        batch_size=4, # For pictures visability
         num_workers=NUM_WORKERS,
         device=DEVICE
     )
 
     # Visualize a few samples from the test set
-    test_loader = get_dataloader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
+    test_loader = get_dataloader(test_dataset, batch_size=4, num_workers=NUM_WORKERS)
     data_iter = iter(test_loader)
     img1, img2, label = next(data_iter)
+    actual = 'Same' if label == 1 else 'Different'
 
     # Load the model for prediction
     model = SiameseNetwork(CNN_BLOCKS, FC_LAYERS).to(DEVICE)
@@ -123,7 +124,7 @@ def main_predict():
 
     with torch.no_grad():
         outputs = model(img1.to(DEVICE), img2.to(DEVICE)).squeeze()
-        similarity_scores = [f"Sim: {score:.2f}" for score in outputs.cpu().tolist()]
+        similarity_scores = [f"{actual} ,Pred: {score:.2f}" for score in outputs.cpu().tolist()]
 
         # Stack each pair of images vertically and then concatenate the pairs horizontally
         pairs = [torch.cat((img1[i], img2[i]), dim=1) for i in range(img1.size(0))]
@@ -212,7 +213,7 @@ if __name__ == "__main__":
         print("2. Calculate Convolution Output")
         print("3. Train a Model")
         print("4. Test Existing Model")
-        print("5. View main Mistakes")
+        print("5. View Main Mistakes")
         print("9. Exit")
 
     while True:

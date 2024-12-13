@@ -234,7 +234,7 @@ def train(model, dataset, batch_size, val_split,
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
     # Initialize variables for early stopping
-    best_val_loss = float('inf')
+    best_val_accuracy = 0.5 # Do not save a random binary classifier
     epochs_no_improve = 0
     min_epochs, max_epochs = epochs[0], epochs[1]
 
@@ -291,11 +291,11 @@ def train(model, dataset, batch_size, val_split,
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
 
-        print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.2f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.2f}), Time: {current_duration:.2f} min, LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.3f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.3f}), Time: {current_duration:.1f} min, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
-        # Early stopping check
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        # Early stopping check, by validation accuracy check
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
             epochs_no_improve = 0
 
             # Save best model
@@ -307,7 +307,7 @@ def train(model, dataset, batch_size, val_split,
             print(f"[Training Status]: Early stopping after {epoch+1} epochs.")
             break
 
-    print(f"[Training Status]: Best model saved at {save_path} with Validation Loss: {best_val_loss:.4f}")
+    print(f"[Training Status]: Best model saved at {save_path} with Validation Accuracy: {best_val_accuracy:.4f}")
     return train_losses, val_losses
 
 

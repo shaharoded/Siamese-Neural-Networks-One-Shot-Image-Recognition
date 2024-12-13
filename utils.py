@@ -23,7 +23,7 @@ def imshow(img, labels=None):
         step = img.size(2) // num_pairs  # Calculate the width of each pair
         for i, label in enumerate(labels):
             plt.text(step * (i + 0.5), -10, label, ha='center', va='bottom',
-                     fontsize=12, fontweight='bold', color="black",
+                     fontsize=8, fontweight='bold', color="black",
                      bbox={'facecolor': 'white', 'alpha': 0.8, 'pad': 3})
     
     plt.show()
