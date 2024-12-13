@@ -294,7 +294,7 @@ def train(model, dataset, batch_size, val_split,
         print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.3f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.3f}), Time: {current_duration:.1f} min, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
         # Early stopping check, by validation accuracy check
-        if val_loss > best_val_loss:
+        if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
 
