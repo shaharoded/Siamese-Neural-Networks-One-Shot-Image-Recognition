@@ -114,8 +114,8 @@ def main_predict():
     # Visualize a few samples from the test set
     test_loader = get_dataloader(test_dataset, batch_size=4, num_workers=NUM_WORKERS)
     data_iter = iter(test_loader)
-    img1, img2, label = next(data_iter)
-    actual = 'Same' if label == 1 else 'Different'
+    img1, img2, labels = next(data_iter)
+    actuals = ['Same' if label.item() == 1 else 'Different' for label in labels]
 
     # Load the model for prediction
     model = SiameseNetwork(CNN_BLOCKS, FC_LAYERS).to(DEVICE)
@@ -123,15 +123,15 @@ def main_predict():
     model.eval()
 
     with torch.no_grad():
-        outputs = model(img1.to(DEVICE), img2.to(DEVICE)).squeeze()
-        similarity_scores = [f"{actual} ,Pred: {score:.2f}" for score in outputs.cpu().tolist()]
+        outputs = model(img1.to(DEVICE), img2.to(DEVICE)).squeeze().cpu().tolist()  # Convert to list
+        similarity_scores = [f"{actual}, Pred: {score:.2f}" for actual, score in zip(actuals, outputs)]
 
-        # Stack each pair of images vertically and then concatenate the pairs horizontally
-        pairs = [torch.cat((img1[i], img2[i]), dim=1) for i in range(img1.size(0))]
-        concatenated = torch.cat(pairs, dim=2)
+        # Stack each pair of images vertically
+        pairs = [torch.cat((img1[i], img2[i]), dim=1) for i in range(img1.size(0))]  # dim=1 for vertical stacking
+        concatenated = torch.cat(pairs, dim=2)  # Concatenate horizontally
 
         # Display the grid of stacked pairs with labels
-        imshow(torchvision.utils.make_grid(concatenated), labels=similarity_scores)
+        imshow(concatenated, labels=similarity_scores)
 
         
 def view_mistakes(k=5):
