@@ -307,7 +307,7 @@ def train(model, dataset, batch_size, val_split,
             print(f"[Training Status]: Early stopping after {epoch+1} epochs.")
             break
 
-    print(f"[Training Status]: Best model saved at {save_path} with Validation Accuracy: {best_val_accuracy:.4f}")
+    print(f"[Training Status]: Best model saved at {save_path} with Validation Accuracy: {best_val_loss:.4f}")
     return train_losses, val_losses
 
 
