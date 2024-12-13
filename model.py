@@ -234,7 +234,7 @@ def train(model, dataset, batch_size, val_split,
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
     # Initialize variables for early stopping
-    best_val_loss = math.inf
+    best_val_loss = np.inf
     epochs_no_improve = 0
     min_epochs, max_epochs = epochs[0], epochs[1]
 
