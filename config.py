@@ -13,27 +13,28 @@ BATCH_SIZE = 16      # Batch size for training and validation
 NUM_WORKERS = 2     # Number of worker threads for DataLoader
 
 # Image Transformation Parameters
-IMAGE_SIZE = (105, 105)  # Matches the input size in the paper
+IMAGE_SIZE = (250, 250)  # Matches the input size of the dataset
 
 # Model Parameters:
+DROPOUT = 0.0
+BATCHNORM = False
 # CNN Block Configurations
 CNN_BLOCKS = [
     # New layers to handle the larger input size
-    {"out_channels": 32, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": False, "dropout_prob": 0.0},  # 250x250 -> 236x236
-    {"out_channels": 64, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": False, "dropout_prob": 0.0},  # 236x236 -> 222x222
-    {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True,  "use_batchnorm": False, "dropout_prob": 0.0},  # 222x222 -> 105x105
+    {"out_channels": 32, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 250x250 -> 236x236
+    {"out_channels": 64, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 236x236 -> 222x222
+    {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True,  "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 222x222 -> 105x105
     
     # Original architecture
-    {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": False, "dropout_prob": 0.0},   # 105x105 -> 48x48
-    {"out_channels": 128, "kernel_size": 7, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": False, "dropout_prob": 0.0},   # 48x48 -> 21x21
-    {"out_channels": 128, "kernel_size": 4, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": False, "dropout_prob": 0.0},   # 21x21 -> 9x9
-    {"out_channels": 256, "kernel_size": 4, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": False, "dropout_prob": 0.0},  # 9x9 -> 6x6
+    {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},   # 105x105 -> 48x48
+    {"out_channels": 128, "kernel_size": 7, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},   # 48x48 -> 21x21
+    {"out_channels": 128, "kernel_size": 4, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},   # 21x21 -> 9x9
+    {"out_channels": 256, "kernel_size": 4, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 9x9 -> 6x6
 ]
 
-# Fully Connected Layer Configurations
 FC_LAYERS = [
-    {"in_features": 256 * 6 * 6, "out_features": 4096},  # Fully Connected Layer, # 6x6 -> 1X4096
-    {"in_features": 4096, "out_features": 1},           # Final output layer (1X4096 -> 1X1)
+    {"in_features": 256 * 6 * 6, "out_features": 4096, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT}, # Fully Connected Layer, # 6x6 -> 1X4096
+    {"in_features": 4096, "out_features": 1, "use_batchnorm": False, "dropout_prob": 0.0},  # Final similarity score layer (1X4096 -> 1X1)
 ]
 
 # Training Parameters

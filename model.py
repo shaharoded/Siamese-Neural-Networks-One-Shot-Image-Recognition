@@ -63,6 +63,38 @@ class CNNBlock(nn.Module):
         if self.dropout:
             x = self.dropout(x)
         return x
+    
+    
+class FullyConnectedBlock(nn.Module):
+    """
+    A block for creating fully connected layers with optional batch normalization and dropout.
+
+    Args:
+        in_features (int): Number of input features.
+        out_features (int): Number of output features.
+        use_batchnorm (bool): Whether to apply batch normalization.
+        dropout_prob (float): Dropout probability (0.0 means no dropout).
+
+    Forward Pass:
+        Input: Tensor of shape (batch_size, in_features)
+        Output: Tensor of shape (batch_size, out_features)
+    """
+    def __init__(self, in_features, out_features, use_batchnorm=False, dropout_prob=0.0):
+        super(FullyConnectedBlock, self).__init__()
+        self.linear = nn.Linear(in_features, out_features)
+        self.batchnorm = nn.BatchNorm1d(out_features) if use_batchnorm else None
+        self.activation = nn.Sigmoid()  # Using Sigmoid for all FC layers
+        self.dropout = nn.Dropout(dropout_prob) if dropout_prob > 0 else None
+
+
+    def forward(self, x):
+        x = self.linear(x)
+        if self.batchnorm:
+            x = self.batchnorm(x)
+        x = self.activation(x)
+        if self.dropout:
+            x = self.dropout(x)
+        return x
 
 class SiameseNetwork(nn.Module):
     """
@@ -104,15 +136,19 @@ class SiameseNetwork(nn.Module):
         self.cnn = nn.Sequential(*cnn_layers)
         
         # Fully connected layers
-        # Fully connected layers
         fc_layers_list = []
-        for i, fc in enumerate(fc_layers):
-            fc_layers_list.append(nn.Linear(fc["in_features"], fc["out_features"]))
-            if i < len(fc_layers) - 1:  # Add Sigmoid for all layers except the final one
-                fc_layers_list.append(nn.Sigmoid())
+        input_features = fc_layers[0]["in_features"]
+        for fc in fc_layers:
+            fc_layers_list.append(FullyConnectedBlock(
+                in_features=input_features,
+                out_features=fc["out_features"],
+                use_batchnorm=fc.get("use_batchnorm", False),
+                dropout_prob=fc.get("dropout_prob", 0.0)
+            ))
+            input_features = fc["out_features"]
         self.fc = nn.Sequential(*fc_layers_list)
         
-
+        
     def __forward_once(self, x):
         """
         Passes a single input through the CNN and the first fully connected layer
@@ -146,8 +182,7 @@ class SiameseNetwork(nn.Module):
         l1_distance = torch.abs(output1 - output2)
 
         # Pass the L1 distance through the final layer (last FC)
-        similarity_score = self.fc[-1](l1_distance)
-        return torch.sigmoid(similarity_score)
+        return self.fc[-1](l1_distance)
     
 
 def train(model, dataset, batch_size, val_split, 
