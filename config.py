@@ -17,18 +17,18 @@ BATCH_SIZE = 16      # Batch size for training and validation
 NUM_WORKERS = 2     # Number of worker threads for DataLoader
 
 # Image Transformation Parameters
-IMAGE_SIZE = (250, 250)  # Matches the input size of the dataset
+IMAGE_SIZE = (105, 105)  # Matches the input size of the dataset
 
 # Model Parameters:
 DROPOUT = 0.0
 BATCHNORM = False
 # CNN Block Configurations
-CNN_BLOCKS = [
-    # New layers to handle the larger input size
-    {"out_channels": 32, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 250x250 -> 236x236
-    {"out_channels": 64, "kernel_size": 15, "stride": 1, "padding": 0, "use_pooling": False, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 236x236 -> 222x222
-    {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True,  "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},  # 222x222 -> 105x105
-    
+# Model Parameters:
+DROPOUT = 0.0
+BATCHNORM = False
+
+# CNN Block Configurations
+CNN_BLOCKS = [    
     # Original architecture
     {"out_channels": 64, "kernel_size": 10, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},   # 105x105 -> 48x48
     {"out_channels": 128, "kernel_size": 7, "stride": 1, "padding": 0, "use_pooling": True, "use_batchnorm": BATCHNORM, "dropout_prob": DROPOUT},   # 48x48 -> 21x21
@@ -43,11 +43,11 @@ FC_LAYERS = [
 
 # Training Parameters
 VAL_SPLIT = 0.2                   # Fraction of data for validation (out of train)
-MIN_EPOCHS = 50                   # Min number of training epochs
-MAX_EPOCHS = 500                      # Max number of training epochs
+MIN_EPOCHS = 20                   # Min number of training epochs
+MAX_EPOCHS = 200                      # Max number of training epochs
 LEARNING_RATE = 1e-4              # Learning rate for the optimizer
 L2_REG = 1e-4                     # L2 regularization strength
-EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
+EARLY_STOP_PATIENCE = 10          # Number of epochs for early stopping
 
 # Device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Device to use ('cpu' or 'cuda')
