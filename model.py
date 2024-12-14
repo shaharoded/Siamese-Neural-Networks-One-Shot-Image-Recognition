@@ -195,6 +195,7 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
         batch_size (int): Batch size for training.
         shuffle (bool): Whether to shuffle the dataset during training.
         val_split (float): Fraction of data to use for validation.
+        augment_ratio (int): The ratio to augment the train dataset (X2, X3...)
         epochs (tup): (Minimum number of epochs, Maximum number of epochs) to train.
         lr (float): Learning rate for the optimizer.
         l2_reg (float): L2 regularization strength.
@@ -202,7 +203,6 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
         save_path (str): Path to save the best model.
         num_workers (int): Number of worker threads for data loading.
         device (str): Device to run the training on (e.g., 'cpu', 'cuda').
-        qa_mode (bool): If true, will train on a small subset of the data, to ensure process correctness.
 
     Returns:
         2 list objects - train and validation losses.
@@ -211,14 +211,14 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
     # Record start time
     start_time = time.time()
     
-    # Apply augmentation to the dataset before splitting
-    if augment_ratio > 0:
-        print(f"[Training]: Applying augmentation with ratio {augment_ratio} to the dataset.")
-        augmented_data = augment_dataset(dataset, augment_ratio)
-        dataset.data = augmented_data
-    
     # Perform stratified split
     train_dataset, val_dataset = stratified_split(dataset, val_split)
+    
+    # Apply augmentation to the train dataset
+    if augment_ratio > 0:
+        print(f"[Training]: Applying augmentation with ratio {augment_ratio} to the dataset.")
+        augmented_data = augment_dataset(train_dataset, augment_ratio)
+        train_dataset.data = augmented_data
         
     train_positives, train_negatives = count_labels(train_dataset)
     val_positives, val_negatives = count_labels(val_dataset)

@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from utils import apply_augmentation
 
 class SiameseNetworkDataset(Dataset):
-    def __init__(self, root_dir, file_list, transform=None, image_size=(105,105), increase_ratio=0.0):
+    def __init__(self, root_dir, file_list=None, transform=None, image_size=(105,105)):
         """
         Dataset for Siamese Network.
         Handles same-folder (twins) and different-folder (not twins) pairs.
@@ -18,11 +18,7 @@ class SiameseNetworkDataset(Dataset):
         transforms.Resize(image_size),
         transforms.ToTensor()
         ])        
-        self.data = self.__load_data(file_list)
-        
-        # If increase_ratio > 0, augment the dataset
-        if increase_ratio > 0:
-            self.__augment_dataset(increase_ratio)
+        self.data = self.__load_data(file_list) if file_list else []
 
 
     def __load_data(self, file_list):
@@ -70,33 +66,81 @@ class SiameseNetworkDataset(Dataset):
         return data
     
     
-    def __getitem__(self, index):
-        entry = self.data[index]
+    def _load_images(self, folder_or_persons, img1_id, img2_id):
+        """
+        Load the original images from the dataset based on metadata.
 
+        Args:
+            folder_or_persons: Folder name or tuple of person names for the images.
+            img1_id (int): ID of the first image.
+            img2_id (int): ID of the second image.
+
+        Returns:
+            Tuple[Image, Image]: The two loaded images as PIL.Image objects.
+        """
         # Same-folder pairs
-        if isinstance(entry[0], str):
-            folder, img1_id, img2_id, same_person = entry
+        if isinstance(folder_or_persons, str):
+            folder = folder_or_persons
             img1_path = os.path.join(self.root_dir, folder, f"{folder}_{img1_id:04d}.jpg")
             img2_path = os.path.join(self.root_dir, folder, f"{folder}_{img2_id:04d}.jpg")
-
         # Different-folder pairs
         else:
-            (person1, person2), img1_id, img2_id, same_person = entry
+            person1, person2 = folder_or_persons
             img1_path = os.path.join(self.root_dir, person1, f"{person1}_{img1_id:04d}.jpg")
             img2_path = os.path.join(self.root_dir, person2, f"{person2}_{img2_id:04d}.jpg")
 
-        # Open images
-        img1 = Image.open(img1_path).convert("L")
-        img2 = Image.open(img2_path).convert("L")
+        # Load images as PIL objects
+        img1 = Image.open(img1_path).convert("L")  # Convert to grayscale
+        img2 = Image.open(img2_path).convert("L")  # Convert to grayscale
+        return img1, img2
+    
+    
+    def __getitem__(self, index):
+        '''
+        Handles both in-memory (augmented pairs) and actual pairs
+        '''
+        entry = self.data[index]
 
-        # Apply transformations
-        if self.transform:
-            img1 = self.transform(img1)
-            img2 = self.transform(img2)
+        # Check if the entry contains in-memory augmented images
+        if isinstance(entry[1], Image.Image) and isinstance(entry[2], Image.Image):
+            # Augmented pair: entry = (folder_or_persons, img1_aug, img2_aug, label)
+            img1, img2, same_person = entry[1], entry[2], entry[3]
 
-        # Convert the label (same person: 1, different person: 0) to a tensor
-        label = torch.tensor([same_person], dtype=torch.float32)
-        return img1, img2, label
+            # Apply transformations if defined
+            if self.transform:
+                img1 = self.transform(img1)
+                img2 = self.transform(img2)
+
+            # Convert label to tensor
+            label = torch.tensor([same_person], dtype=torch.float32)
+            return img1, img2, label
+
+        # Original pair: Process using paths
+        else:
+            # Same-folder pairs
+            if isinstance(entry[0], str):
+                folder, img1_id, img2_id, same_person = entry
+                img1_path = os.path.join(self.root_dir, folder, f"{folder}_{img1_id:04d}.jpg")
+                img2_path = os.path.join(self.root_dir, folder, f"{folder}_{img2_id:04d}.jpg")
+
+            # Different-folder pairs
+            else:
+                (person1, person2), img1_id, img2_id, same_person = entry
+                img1_path = os.path.join(self.root_dir, person1, f"{person1}_{img1_id:04d}.jpg")
+                img2_path = os.path.join(self.root_dir, person2, f"{person2}_{img2_id:04d}.jpg")
+
+            # Open images
+            img1 = Image.open(img1_path).convert("L")
+            img2 = Image.open(img2_path).convert("L")
+
+            # Apply transformations if defined
+            if self.transform:
+                img1 = self.transform(img1)
+                img2 = self.transform(img2)
+
+            # Convert label to tensor
+            label = torch.tensor([same_person], dtype=torch.float32)
+            return img1, img2, label
 
     def __len__(self):
         return len(self.data)
@@ -113,46 +157,61 @@ def get_dataloader(dataset, batch_size, num_workers):
 
 def stratified_split(dataset, val_split):
     """
-    Perform a stratified split of the dataset into training and validation sets.
+    Perform a stratified split of the dataset into independent training and validation datasets.
     
     Args:
-        dataset: The full dataset to split.
-        val_split: Fraction of data to use for validation.
+        dataset (SiameseNetworkDataset): The full dataset to split.
+        val_split (float): Fraction of data to use for validation.
         
     Returns:
-        train_dataset, val_dataset: Subsets for training and validation.
+        train_dataset (SiameseNetworkDataset): Training dataset.
+        val_dataset (SiameseNetworkDataset): Validation dataset.
     """
-    # Separate indices by label
-    label_1_indices = [i for i, data in enumerate(dataset) if data[2].item() == 1]  # Label = 1
-    label_0_indices = [i for i, data in enumerate(dataset) if data[2].item() == 0]  # Label = 0
+    # Separate data by label
+    label_1_data = [data for data in dataset.data if data[3] == 1]  # Label = 1
+    label_0_data = [data for data in dataset.data if data[3] == 0]  # Label = 0
 
-    # Shuffle indices
-    np.random.shuffle(label_1_indices)
-    np.random.shuffle(label_0_indices)
+    # Shuffle data
+    np.random.shuffle(label_1_data)
+    np.random.shuffle(label_0_data)
 
     # Calculate split sizes
-    val_size_1 = int(len(label_1_indices) * val_split)
-    val_size_0 = int(len(label_0_indices) * val_split)
+    val_size_1 = int(len(label_1_data) * val_split)
+    val_size_0 = int(len(label_0_data) * val_split)
 
-    # Split indices
-    val_indices = label_1_indices[:val_size_1] + label_0_indices[:val_size_0]
-    train_indices = label_1_indices[val_size_1:] + label_0_indices[val_size_0:]
+    # Split data
+    val_data = label_1_data[:val_size_1] + label_0_data[:val_size_0]
+    train_data = label_1_data[val_size_1:] + label_0_data[val_size_0:]
 
-    # Shuffle final indices for train and validation
-    np.random.shuffle(train_indices)
-    np.random.shuffle(val_indices)
+    # Shuffle final train and validation data
+    np.random.shuffle(train_data)
+    np.random.shuffle(val_data)
 
-    # Create subsets
-    train_dataset = Subset(dataset, train_indices)
-    val_dataset = Subset(dataset, val_indices)
+    # Create new dataset objects
+    train_dataset = SiameseNetworkDataset(
+        root_dir=dataset.root_dir,
+        file_list=None,  # No file list needed as we manually split
+        transform=dataset.transform,
+        image_size=dataset.transform.transforms[1].size if dataset.transform else None,
+    )
+    val_dataset = SiameseNetworkDataset(
+        root_dir=dataset.root_dir,
+        file_list=None,  # No file list needed as we manually split
+        transform=dataset.transform,
+        image_size=dataset.transform.transforms[1].size if dataset.transform else None,
+    )
+
+    # Assign the split data directly
+    train_dataset.data = train_data
+    val_dataset.data = val_data
 
     return train_dataset, val_dataset
 
 
 def augment_dataset(dataset, augment_ratio):
     """
-    Augments the dataset by creating additional metadata for augmented pairs.
-    The augmented images will be generated dynamically in __getitem__.
+    Augments the dataset by creating additional pairs with augmented images.
+    The augmented images will be generated dynamically.
 
     Args:
         dataset (SiameseNetworkDataset): The dataset to augment.
@@ -167,8 +226,16 @@ def augment_dataset(dataset, augment_ratio):
     augmented_data = original_data.copy()
 
     for folder_or_persons, img1_id, img2_id, label in original_data:
-        for _ in range(int(augment_ratio-1)):
-            augmented_data.append((folder_or_persons, img1_id, img2_id, label))
+        for _ in range(int(augment_ratio - 1)):
+            # Dynamically load the original images
+            img1, img2 = dataset._load_images(folder_or_persons, img1_id, img2_id)
+
+            # Apply augmentations to both images
+            img1_aug = apply_augmentation(img1)
+            img2_aug = apply_augmentation(img2)
+
+            # Save augmented images as temporary PIL images
+            augmented_data.append((folder_or_persons, img1_aug, img2_aug, label))
 
     print(f"[Augmentation]: Dataset augmented. Original size: {len(original_data)}, New size: {len(augmented_data)}")
     return augmented_data
