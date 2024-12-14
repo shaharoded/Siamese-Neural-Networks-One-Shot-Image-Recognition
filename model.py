@@ -233,7 +233,7 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
     # Define loss function and optimizer
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_reg)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
 
     # Initialize variables for early stopping
     best_val_loss = np.inf

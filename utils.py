@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import torch
 from torchvision.transforms import functional as F
 
 
@@ -17,7 +18,7 @@ def imshow(img, labels=None):
     plt.axis("off")
     
     # Display images
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.imshow(np.transpose(npimg, (1, 2, 0)), cmap='gray')
     
     # Add labels above images
     if labels:
@@ -36,11 +37,26 @@ def apply_augmentation(image):
     Apply random augmentation to an image.
     """
     augmentation_choices = [
+        # Geometric Augmentations
         lambda x: F.rotate(x, angle=random.uniform(-15, 15)),  # Random rotation
-        lambda x: F.gaussian_blur(x, kernel_size=3),           # Gaussian blur
+        lambda x: F.hflip(x),                                 # Horizontal flip
+        lambda x: F.vflip(x),                                 # Vertical flip
+        lambda x: F.affine(x, angle=random.uniform(-10, 10), translate=(random.uniform(-0.1, 0.1), random.uniform(-0.1, 0.1)), scale=random.uniform(0.9, 1.1), shear=random.uniform(-5, 5)),  # Affine transform
+        lambda x: F.resized_crop(x, top=random.randint(0, 10), left=random.randint(0, 10), height=90, width=90, size=(105, 105)),  # Random crop
+        
+        # Intensity Augmentations
+        lambda x: F.gaussian_blur(x, kernel_size=3),          # Gaussian blur
         lambda x: F.adjust_brightness(x, brightness_factor=random.uniform(0.8, 1.2)),  # Brightness
         lambda x: F.adjust_contrast(x, contrast_factor=random.uniform(0.8, 1.2)),      # Contrast
-        lambda x: x  # No augmentation
+        lambda x: F.adjust_sharpness(x, sharpness_factor=random.uniform(0.8, 1.2)),    # Sharpness
+        lambda x: x + torch.randn_like(x) * 0.05,            # Add Gaussian noise
+        
+        # Gray-scale Specific Augmentations
+        lambda x: F.invert(x) if random.random() > 0.5 else x,  # Random inversion
+        lambda x: F.adjust_gamma(x, gamma=random.uniform(0.8, 1.2)),  # Gamma adjustment
+        
+        # No Augmentation
+        lambda x: x
     ]
     augmentation = random.choice(augmentation_choices)
     return augmentation(image)
