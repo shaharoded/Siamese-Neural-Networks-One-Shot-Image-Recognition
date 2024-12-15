@@ -38,13 +38,12 @@ FC_LAYERS = [
 ]
 
 # Training Parameters
-VAL_SPLIT = 0.2                   # Fraction of data for validation (out of train)
-AUGMENT_RATIO = 3.0               # Augment the data X3
-MIN_EPOCHS = 50                   # Min number of training epochs
+VAL_SPLIT = 0.3                   # Fraction of data for validation (out of train), like in the paper
+AUGMENT_RATIO = 9                 # Augment the data X9, like in the paper
 MAX_EPOCHS = 200                  # Max number of training epochs
 LEARNING_RATE = 1e-3              # Learning rate for the optimizer
 L2_REG = 1e-3                     # L2 regularization strength
-EARLY_STOP_PATIENCE = 15          # Number of epochs for early stopping
+EARLY_STOP_PATIENCE = 20          # Number of epochs for early stopping
 
 # Device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Device to use ('cpu' or 'cuda')

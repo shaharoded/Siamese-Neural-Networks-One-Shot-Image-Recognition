@@ -4,9 +4,8 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Subset
 from dataset import get_dataloader, stratified_split, augment_dataset, count_labels
+from utils import update_momentum
 
 
 SEED = 42
@@ -47,11 +46,18 @@ class CNNBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, 
                  padding, use_pooling=True, use_batchnorm=True, dropout_prob=0.0):
         super(CNNBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        
+        # Define layers
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=not use_batchnorm)
         self.batchnorm = nn.BatchNorm2d(out_channels) if use_batchnorm else None
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2) if use_pooling else None
         self.dropout = nn.Dropout2d(dropout_prob) if dropout_prob > 0 else None
+        
+        # Initialize weights and biases
+        nn.init.normal_(self.conv.weight, mean=0.0, std=1e-2)
+        if self.conv.bias is not None:
+            nn.init.normal_(self.conv.bias, mean=0.5, std=1e-2)
 
     def forward(self, x):
         x = self.conv(x)
@@ -81,10 +87,17 @@ class FullyConnectedBlock(nn.Module):
     """
     def __init__(self, in_features, out_features, use_batchnorm=False, dropout_prob=0.0):
         super(FullyConnectedBlock, self).__init__()
-        self.linear = nn.Linear(in_features, out_features)
+        
+        # Define layers
+        self.linear = nn.Linear(in_features, out_features, bias=not use_batchnorm)
         self.batchnorm = nn.BatchNorm1d(out_features) if use_batchnorm else None
         self.activation = nn.Sigmoid()  # Using Sigmoid for all FC layers
         self.dropout = nn.Dropout(dropout_prob) if dropout_prob > 0 else None
+        
+        # Initialize weights
+        nn.init.normal_(self.linear.weight, mean=0.0, std=0.2)
+        if self.linear.bias is not None:
+            nn.init.normal_(self.linear.bias, mean=0.5, std=1e-2)
 
 
     def forward(self, x):
@@ -196,7 +209,7 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
         shuffle (bool): Whether to shuffle the dataset during training.
         val_split (float): Fraction of data to use for validation.
         augment_ratio (int): The ratio to augment the train dataset (X2, X3...)
-        epochs (tup): (Minimum number of epochs, Maximum number of epochs) to train.
+        epochs (int): Maximum number of epochs to train.
         lr (float): Learning rate for the optimizer.
         l2_reg (float): L2 regularization strength.
         early_stop_patience (int): Number of epochs to wait for improvement before stopping.
@@ -232,23 +245,21 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
 
     # Define loss function and optimizer
     criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_reg)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.5, weight_decay=l2_reg)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: 0.99 ** epoch)
 
     # Initialize variables for early stopping
     best_val_loss = np.inf
     epochs_no_improve = 0
-    min_epochs, max_epochs = epochs[0], epochs[1]
 
     train_losses, val_losses = [], []
     
     # Training loop
-    for epoch in range(max_epochs):
+    for epoch in range(epochs):
         model.train()
         train_loss = 0.0
         train_correct = 0
         train_total = 0
-        train_loss = 0.0
 
         for batch in train_loader:
             img1, img2, labels = batch
@@ -288,12 +299,14 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
         val_loss /= len(val_loader)
         val_accuracy = val_correct / val_total
         val_losses.append(val_loss)
-        scheduler.step(val_loss) # Adjust learning rate
+        
+        scheduler.step()  # Decay learning rate
+        optimizer = update_momentum(optimizer, epoch, epochs, mu_max=0.9)
         
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
 
-        print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.3f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.3f}), Time: {current_duration:.1f} min, LR: {optimizer.param_groups[0]['lr']:.2e}")
+        print(f"[Training Status]: Epoch {epoch+1}, Train Loss: {train_loss:.4f} (acc {train_accuracy:.3f}), Val Loss: {val_loss:.4f} (acc {val_accuracy:.3f}), Time: {current_duration:.1f} min, LR: {optimizer.param_groups[0]['lr']:.6f}")
 
         # Early stopping check, by validation accuracy check
         if val_loss < best_val_loss:
@@ -302,7 +315,7 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
 
             # Save best model
             torch.save(model.state_dict(), save_path)
-        elif epoch >= min_epochs:
+        else:
             epochs_no_improve += 1
 
         if epochs_no_improve >= early_stop_patience:

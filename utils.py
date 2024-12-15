@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-import torch
 from torchvision.transforms import functional as F
 
 
@@ -32,29 +31,52 @@ def imshow(img, labels=None):
     plt.show()
     
 
+# def apply_augmentation(image):
+#     """
+#     Apply random augmentation to an image.
+#     """
+#     augmentation_choices = [
+#         # Geometric Augmentations
+#         lambda x: F.rotate(x, angle=random.uniform(-15, 15)),  # Random rotation
+#         lambda x: F.hflip(x),                                 # Horizontal flip
+#         lambda x: F.vflip(x),                                 # Vertical flip
+#         lambda x: F.resized_crop(x, top=random.randint(0, 10), left=random.randint(0, 10), height=90, width=90, size=(105, 105)),  # Random crop
+        
+#         # Intensity Augmentations
+#         lambda x: F.gaussian_blur(x, kernel_size=3),          # Gaussian blur
+#         lambda x: F.adjust_brightness(x, brightness_factor=random.uniform(0.8, 1.2)),  # Brightness
+#         lambda x: F.adjust_contrast(x, contrast_factor=random.uniform(0.8, 1.2)),      # Contrast
+#         lambda x: F.adjust_sharpness(x, sharpness_factor=random.uniform(0.8, 1.2)),    # Sharpness
+#         lambda x: F.adjust_gamma(x, gamma=random.uniform(0.8, 1.2)),  # Gamma adjustment
+
+#         # No Augmentation
+#         lambda x: x
+#     ]
+#     augmentation = random.choice(augmentation_choices)
+#     return augmentation(image)
+
+
 def apply_augmentation(image):
     """
-    Apply random augmentation to an image.
+    Apply affine transformations with constraints matching the original paper.
+    Each component of the transformation is included with a 50% probability.
     """
-    augmentation_choices = [
-        # Geometric Augmentations
-        lambda x: F.rotate(x, angle=random.uniform(-15, 15)),  # Random rotation
-        lambda x: F.hflip(x),                                 # Horizontal flip
-        lambda x: F.vflip(x),                                 # Vertical flip
-        lambda x: F.resized_crop(x, top=random.randint(0, 10), left=random.randint(0, 10), height=90, width=90, size=(105, 105)),  # Random crop
-        
-        # Intensity Augmentations
-        lambda x: F.gaussian_blur(x, kernel_size=3),          # Gaussian blur
-        lambda x: F.adjust_brightness(x, brightness_factor=random.uniform(0.8, 1.2)),  # Brightness
-        lambda x: F.adjust_contrast(x, contrast_factor=random.uniform(0.8, 1.2)),      # Contrast
-        lambda x: F.adjust_sharpness(x, sharpness_factor=random.uniform(0.8, 1.2)),    # Sharpness
-        lambda x: F.adjust_gamma(x, gamma=random.uniform(0.8, 1.2)),  # Gamma adjustment
+    # Initialize transformation parameters
+    angle = random.uniform(-10, 10) if random.random() > 0.5 else 0  # Rotation
+    shear = random.uniform(-0.3, 0.3) if random.random() > 0.5 else 0  # Shear
+    scale = random.uniform(0.8, 1.2) if random.random() > 0.5 else 1.0  # Scaling
+    translate_x = random.uniform(-2, 2) if random.random() > 0.5 else 0  # Horizontal translation
+    translate_y = random.uniform(-2, 2) if random.random() > 0.5 else 0  # Vertical translation
 
-        # No Augmentation
-        lambda x: x
-    ]
-    augmentation = random.choice(augmentation_choices)
-    return augmentation(image)
+    # Apply affine transformation
+    image = F.affine(
+        image, 
+        angle=angle, 
+        translate=(translate_x, translate_y), 
+        scale=scale, 
+        shear=shear
+    )
+    return image
     
 
 def calculate_output_size(input_size, kernel_size, stride, padding, pool_kernel, pool_stride, pool_padding):
@@ -121,3 +143,24 @@ def calculate_cnn_output_size(cnn_blocks, input_size):
         channels = block.get("out_channels", channels)
 
     return h, w, channels
+
+
+def update_momentum(optimizer, epoch, total_epochs, mu_start=0.5, mu_max=0.9):
+    """
+    Update momentum linearly from `mu_start` to `mu_max` over `total_epochs`.
+
+    Args:
+        optimizer: Optimizer to update.
+        epoch: Current epoch number.
+        total_epochs: Total number of epochs for training.
+        mu_start: Initial momentum value.
+        mu_max: Maximum momentum value.
+
+    Returns:
+        Updated optimizer.
+    """
+    new_momentum = mu_start + (mu_max - mu_start) * min(epoch / total_epochs, 1.0)
+    for param_group in optimizer.param_groups:
+        if "momentum" in param_group:  # Only works for optimizers with momentum (e.g., SGD)
+            param_group["momentum"] = new_momentum
+    return optimizer
