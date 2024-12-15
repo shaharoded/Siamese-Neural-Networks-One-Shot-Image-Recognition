@@ -143,24 +143,3 @@ def calculate_cnn_output_size(cnn_blocks, input_size):
         channels = block.get("out_channels", channels)
 
     return h, w, channels
-
-
-def update_momentum(optimizer, epoch, total_epochs, mu_start=0.5, mu_max=0.9):
-    """
-    Update momentum linearly from `mu_start` to `mu_max` over `total_epochs`.
-
-    Args:
-        optimizer: Optimizer to update.
-        epoch: Current epoch number.
-        total_epochs: Total number of epochs for training.
-        mu_start: Initial momentum value.
-        mu_max: Maximum momentum value.
-
-    Returns:
-        Updated optimizer.
-    """
-    new_momentum = mu_start + (mu_max - mu_start) * min(epoch / total_epochs, 1.0)
-    for param_group in optimizer.param_groups:
-        if "momentum" in param_group:  # Only works for optimizers with momentum (e.g., SGD)
-            param_group["momentum"] = new_momentum
-    return optimizer

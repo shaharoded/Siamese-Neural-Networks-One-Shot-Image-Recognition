@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from dataset import get_dataloader, stratified_split, augment_dataset, count_labels
-from utils import update_momentum
 
 
 SEED = 42
@@ -245,8 +244,8 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
 
     # Define loss function and optimizer
     criterion = nn.BCELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.5, weight_decay=l2_reg)
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: 0.99 ** epoch)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_reg)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
 
     # Initialize variables for early stopping
     best_val_loss = np.inf
@@ -300,8 +299,8 @@ def train(model, dataset, batch_size, val_split, augment_ratio,
         val_accuracy = val_correct / val_total
         val_losses.append(val_loss)
         
-        scheduler.step()  # Decay learning rate
-        optimizer = update_momentum(optimizer, epoch, epochs, mu_max=0.9)
+        # Step scheduler
+        scheduler.step(val_loss)
         
         epoch_end_time = time.time()
         current_duration = (epoch_end_time - start_time)/60
