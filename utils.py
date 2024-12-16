@@ -29,31 +29,6 @@ def imshow(img, labels=None):
                      bbox={'facecolor': 'white', 'alpha': 0.8, 'pad': 3})
     
     plt.show()
-    
-
-# def apply_augmentation(image):
-#     """
-#     Apply random augmentation to an image.
-#     """
-#     augmentation_choices = [
-#         # Geometric Augmentations
-#         lambda x: F.rotate(x, angle=random.uniform(-15, 15)),  # Random rotation
-#         lambda x: F.hflip(x),                                 # Horizontal flip
-#         lambda x: F.vflip(x),                                 # Vertical flip
-#         lambda x: F.resized_crop(x, top=random.randint(0, 10), left=random.randint(0, 10), height=90, width=90, size=(105, 105)),  # Random crop
-        
-#         # Intensity Augmentations
-#         lambda x: F.gaussian_blur(x, kernel_size=3),          # Gaussian blur
-#         lambda x: F.adjust_brightness(x, brightness_factor=random.uniform(0.8, 1.2)),  # Brightness
-#         lambda x: F.adjust_contrast(x, contrast_factor=random.uniform(0.8, 1.2)),      # Contrast
-#         lambda x: F.adjust_sharpness(x, sharpness_factor=random.uniform(0.8, 1.2)),    # Sharpness
-#         lambda x: F.adjust_gamma(x, gamma=random.uniform(0.8, 1.2)),  # Gamma adjustment
-
-#         # No Augmentation
-#         lambda x: x
-#     ]
-#     augmentation = random.choice(augmentation_choices)
-#     return augmentation(image)
 
 
 def apply_augmentation(image):
@@ -108,7 +83,7 @@ def calculate_output_size(input_size, kernel_size, stride, padding, pool_kernel,
     return h_out, w_out
 
 
-def calculate_cnn_output_size(cnn_blocks, input_size):
+def calculate_cnn_output_size(cnn_blocks, input_size, verbose=False):
     """
     Calculate the output size of the CNN blocks to determine the input size for the FC layers.
     
@@ -122,13 +97,16 @@ def calculate_cnn_output_size(cnn_blocks, input_size):
     h, w = input_size  # Initial input size
     channels = 1  # 3 channels for RGB image, 1 channel for GrayScale
 
-    for block in cnn_blocks:
+    for i, block in enumerate(cnn_blocks):
         kernel_size = block.get("kernel_size", 1)
         stride = block.get("stride", 1)
         padding = block.get("padding", 0)
         pool_kernel = 2 if block.get("use_pooling", False) else 0
         pool_stride = 2 if block.get("use_pooling", False) else 0
         pool_padding = 0
+        
+        # Save initial size before this layer
+        input_size_layer = (h, w, channels)
 
         # Calculate convolution output size
         h = (h + 2 * padding - kernel_size) // stride + 1
@@ -141,5 +119,12 @@ def calculate_cnn_output_size(cnn_blocks, input_size):
 
         # Update the number of channels after this layer
         channels = block.get("out_channels", channels)
+        
+                # Save output size after this layer
+        output_size_layer = (h, w, channels)
+
+        # Print verbose information if requested
+        if verbose:
+            print(f"Layer {i + 1}: Input {input_size_layer} -> Output {output_size_layer}")
 
     return h, w, channels
