@@ -65,7 +65,7 @@ The main module offers some help in planning the CNN dimentions and needed FC di
 ### Prediction
 - Load a pretrained model and evaluate its accuracy on the test set (Menu -> 4).
 - Visualize sample predictions with their similarity scores.
-- Visualize the worst predictions to gain insights over the model's difficulty, as well as a confidence histogram of the trained model (Menu -> 5).
+- Visualize the worst predictions to gain insights over the model's difficulties, as well as a confidence histogram of the trained model (Menu -> 5).
 
 ![Batch Sample](Images/histogram.png)
 
@@ -73,9 +73,9 @@ The main module offers some help in planning the CNN dimentions and needed FC di
 
 ## Results
 
-This problem is not very well predicted by this model, which tends to overfit. Our best attempt reached 73.9% accuracy on the test set.
+The problem is not very well predicted by this model, which tends to overfit. Our best attempt reached 73.9% accuracy on the test set.
 We found that:
-- Augmentation on the data helps, as this is a very small dataset.
+- Augmentation on the data helps, as this is a very small dataset. The functionality to do so with affine noise exists in train().
 - Regularization is a MUST, but with L2 and not Dropout.
 - Using the original image size (250X250) with slight increase to the architecture helps.
 
